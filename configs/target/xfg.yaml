@@ -1,0 +1,21 @@
+# @package target
+# XFG antibody recovery, true multi-target arm: the bd55_1205 scFv co-optimised
+# against WT RBD and the 3-mutation challenge RBD.
+#
+# Both antigen files are the published BD55-1205 antibody in complex with the
+# XFG receptor-binding domain: pdbs/bd55_xfg.pdb is that complex with WT RBD,
+# and pdbs/bd55_xfg_next.pdb the same complex with the 3-mutation challenge
+# RBD.
+#
+# Use with run=multi_rescue_logits, which supplies the matching bd55_1205 scaffold
+# geometry (241-residue binder); run/multi* will not validate against these.
+#
+# The challenge structure differs from WT at A157, A174 and A182. A174 is
+# inside this epitope, so a design has to tolerate E174R to pass both legs.
+# No indel, so both legs share one hotspot list with no offset.
+
+target_name: ["xfg_rbd_wt", "xfg_rbd_3mut"]
+target_pdb_path: ["pdbs/bd55_xfg.pdb", "pdbs/bd55_xfg_next.pdb"]
+target_chain: "A"
+binder_chain: "B"
+target_hotspots: ["A135,A173,A174", "A135,A173,A174"]

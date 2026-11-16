@@ -1,0 +1,19 @@
+# @package filter.initial
+# Initial (post-hallucination) filters for multi-target scFv; lenient.
+# Per-target AND-filtering: every threshold must pass against every antigen
+# state, and the value written to the CSVs is the worst across targets.
+initial.clashes:
+  value: 1
+  operator: '<'
+
+initial.binder_near_hotspot:
+  value: true
+  operator: '=='
+
+initial.percent_interface_cdr:
+  value: 0.5
+  operator: '>'
+
+initial.interface_shape_comp:
+  value: 0.45
+  operator: '>='

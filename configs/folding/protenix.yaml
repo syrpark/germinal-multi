@@ -1,0 +1,52 @@
+# Protenix folding backend. Selected per stage, e.g.
+#   - override folding@recycle_folder: protenix
+# Read these through folding.resolve_folder(run_settings, stage), not by name.
+
+backend: "protenix"
+
+# Diffusion samples per seed (--sample).
+num_samples: 5
+
+# Pairformer cycles (--cycle).
+num_cycles: 10
+
+# Diffusion steps (--step). Protenix-only: run_alphafold.py exposes no
+# equivalent.
+num_steps: 200
+
+# Must stay true: --use_msa False makes Protenix ignore the precomputed
+# unpairedMsaPath MSAs entirely, and run faster, which is the trap.
+use_msa: true
+
+# Protenix runs in its own conda environment; the folding router shells out.
+conda_env: "protenix"
+
+# The v1 default checkpoint, and the only one to use: v1 weights are Apache
+# 2.0, while upstream releases v2's under a proprietary licence (its download
+# returned HTTP 403 as of 2026-11-06). Germinal is v1-only.
+# Other v1-era names the CLI accepts: protenix_base_20250630_v1.0.0,
+# protenix_base_default_v0.5.0 (legacy).
+model_name: "protenix_base_default_v1.0.0"
+
+# --- Which prediction to carry forward ---
+# Same two-axis selection as configs/folding/af3.yaml: min over seeds of max
+# over samples. It matters more here, since the recycle gate reads it.
+sample_select_mode: "best"
+seed_select_mode: "worst"
+
+# --- Alignments ---
+# See configs/folding/af3.yaml for what these mean.
+msa_method: "colabfold_remote"
+
+# binder_masked, not target_only: protenix collapses without a binder
+# alignment where af3 does not, and ipSAE is the entire recycle gate.
+# "masked" gaps the binder's CDR columns in every homolog row, since those
+# are germline loops the design is not. There is no unmasked binder option.
+msa_scope: "binder_masked"
+
+# --- Batching ---
+# Designs per backend call, bounding what a kill mid-fold discards, as in
+# configs/folding/af3.yaml. At the filter stages the whole batch is one
+# invocation, which loads the model once; the recycle loop folds one candidate
+# at a time and is unaffected.
+batch_size: 10

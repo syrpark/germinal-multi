@@ -1,0 +1,54 @@
+# @package filter.final
+# Final filters for multi-target scFv.
+# Per-target AND-filtering: every threshold must pass against every antigen
+# state, and the value written to the CSVs is the worst across targets.
+
+# Structure metrics
+final.clashes:
+  value: 0.2
+  operator: '<='
+
+final.sc_rmsd:
+  value: 6
+  operator: '<='
+
+final.binder_near_hotspot:
+  value: true
+  operator: '=='
+
+final.percent_interface_cdr:
+  value: 0.5
+  operator: '>'
+
+final.interface_shape_comp:
+  value: 0.5
+  operator: '>='
+
+final.interface_hbonds:
+  value: 5
+  operator: '>='
+
+# Hydrophobicity metrics
+final.surface_hydrophobicity:
+  value: 0.45
+  operator: '<'
+
+final.interface_hydrophobicity:
+  value: 35
+  operator: '>'
+
+final.plddt:
+  value: 0.80
+  operator: '>='
+
+final.iptm:
+  value: 0.73
+  operator: '>='
+
+final.ptm:
+  value: 0.80
+  operator: '>='
+
+final.ipsae:
+  value: 0.55
+  operator: '>='

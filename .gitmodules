@@ -1,0 +1,3 @@
+[submodule "external/proteinmpnn"]
+	path = external/proteinmpnn
+	url = https://github.com/Kuhlman-Lab/proteinmpnn.git

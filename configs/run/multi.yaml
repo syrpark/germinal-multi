@@ -1,0 +1,165 @@
+# @package _global_
+# scFv run configuration, full hallucination, no recycling.
+# Generic 242-residue scFv template; use with target=ba2_kp3 or target=egfr.
+
+# General run settings
+# Results root for this config: results/<experiment_name>/. Set per run
+# config so differently-named configs do not share one.
+experiment_name: "multi_scfv"
+
+# Phase A (hallucination) batch bounds -- whichever trips first closes the
+# batch and sends it to the batched initial-filter fold.
+max_hallucination_attempts: 100
+max_hallucination_passing: 5
+
+
+type: "scfv"
+cdr_lengths: [8, 8, 13, 6, 3, 9] # heavy, then light
+fw_lengths: [25,17,38,52,17,36,10]
+pregenerate_seeds: false
+vh_first: true
+vh_len: 120
+vl_len: 107
+protocol: "multi_binder"
+
+# Pipeline routing (see run_germinal_multi.py).
+logits_only: false
+recycling: false
+complex_path: null
+# How per-target gradients are combined each step: "sum" is generic in N,
+# "pcgrad" takes exactly two and falls back to "sum" above that, with a note.
+# The non-logits path uses pcgrad to match the original co_opt.yaml behaviour;
+# logits configs use sum.
+multi_grad_merge_method: "pcgrad"
+clear_best_greedy: False #if true, takes seq from best design but final design gets chosen from Greedy
+is_recover: False
+recover_bias: 5
+
+# Loss function parameters
+weights_plddt: 0.5
+weights_i_plddt: 1
+weights_pae_intra: 0.1
+weights_pae_inter: 0.75
+weights_iptm: 0.85
+weights_con_intra: 0.1
+weights_con_inter: 0.2
+weights_rg: 0.1
+weights_helix: 0.01
+weights_beta: 0.01
+
+intra_contact_distance: 14.0
+inter_contact_distance: 12.0
+intra_contact_number: 2
+inter_contact_number: 10
+framework_contact_loss: true
+framework_contact_offset: 0.1
+
+# Hallucination settings
+logits_steps: 40
+softmax_steps: 10
+search_steps: 5
+search_mutation_rate: 0.05
+plddt_threshold: 0.80
+i_ptm_threshold: 0.73
+i_pae_threshold: 0.22
+seq_entropy_threshold: 0.09
+
+# IgLM settings
+iglm_grad_merge_method: "pcgrad"
+# The antibody language model steering the design gradient. "iglm" is the
+# only supported value; the AbLang path is not wired up.
+ablm_model: "iglm"
+iglm_scale: [0.0, 0.2, 0.4, 1.0]
+iglm_temp: 0.6
+iglm_species: "[HUMAN]"
+seq_init_mode: ["gumbel", "soft"]  # STATIC: Fixed list, no argparse option
+bias_redesign: 10
+use_pos_distance: true
+clear_best: true
+
+# Sequence redesign settings
+mpnn_fix_interface: true
+num_seqs: 16
+max_mpnn_sequences: 4
+sampling_temp: 0.1
+backbone_noise: 0.0
+
+# Structure prediction settings
+# --- Folding backends ---
+# The recycle loop and the filter stages fold independently and may use
+# different models. AF3 folds a whole batch in one container call; Protenix
+# runs one complex per invocation and reports no ipSAE, which the backend
+# derives from its PAE and per-atom pLDDT.
+
+# Protenix-only settings. Ignored unless a stage above selects protenix.
+msa_mode: "target"
+
+# AF3 locations live in configs/folding/af3.yaml (set them there, not here).
+use_metagenomic_db: false
+
+# Template removal settings
+rm_template_seq: true
+rm_template_sc: false
+rm_binder: false
+rm_binder_seq: true
+rm_binder_sc: true
+rm_template_ic: true
+
+# These settings are typically not changed from run to run.
+
+# Model and Optimization settings
+learning_rate: 0.1
+optimizer: "sgd"
+normalize_gradient: true
+linear_lr_annealing: true
+min_lr_scale: 0.25
+use_multimer_design: true
+sample_models: true
+num_models: 1
+num_recycles_design: 3
+recycle_mode: "last"
+
+# Other loss settings
+use_helix_loss: true
+use_beta_loss: true
+use_rg_loss: true
+use_termini_distance_loss: false
+use_i_ptm_loss: true
+
+# File management settings
+save_design_trajectory_plots: false
+
+# Other settings
+omit_AAs: "C"
+dgram_cce: 0.01
+
+# Filter thresholds (moved from hardcoded values in code)
+clash_threshold: 2.4           # Å for atomic clash detection
+
+# FastRelax ensemble size, and how to reduce it into one metric set.
+n_relax: 5
+
+# How to reduce the FastRelax ensemble: "best" takes every metric from the
+# lowest-energy run, "average" means them and so describes no one structure.
+relax_score_mode: "best"
+
+hotspot_distance_threshold: 5.3  # Å to consider residues near hotspots
+residue_contact_distance: 6.0    # Å threshold for residue-residue contact
+min_cdr_hotspot_contacts: 3      # minimum hotspot contacts in CDRs
+early_check_min_cdr_fraction: 0.4  # CDR fraction of the interface, early check
+sap_limit_sasa: 3.0              # minimal SASA in patch to consider
+sap_patch_radius: 7.5            # Å radius for SAP patch
+sap_avg_sasa_patch_thr: 1.5      # average SASA threshold per patch
+atom_distance_cutoff: 2.6        # Å threshold for atom distance in redesign
+
+# Folding seeds per stage. Which backend runs them is selected in the defaults
+# list of configs/config.yaml: folding@recycle_folder / folding@filter_folder.
+num_fold_seeds_initial: 3   # folding seeds, INITIAL filter (is_final=False);
+                  # live on EVERY path: the initial filter is unconditional
+num_fold_seeds_recycle: 1   # folding seeds per fold in the recycling loop
+num_fold_seeds_final: 5   # folding seeds, final filter (is_final=True)
+
+# Which AF3 sample to score from at the final filter stage
+
+# ProteinMPNN weights used for redesign
+mpnn_model_name: "abmpnn"

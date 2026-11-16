@@ -1,0 +1,29 @@
+# @package filter.initial
+# Initial (post-hallucination) filters for XFG antibody recovery.
+#
+# Differs from filter/initial/scfv_multi.yaml only by adding plddt.
+#
+# sc_rmsd is deliberately NOT gated here: the sequence is still the
+# hallucinated one, so it would measure AF2/AF3 agreement rather than
+# self-consistency. It is a final-stage filter, where an AbMPNN sequence
+# exists to refold.
+
+initial.clashes:
+  value: 1
+  operator: '<'
+
+initial.binder_near_hotspot:
+  value: true
+  operator: '=='
+
+initial.percent_interface_cdr:
+  value: 0.5
+  operator: '>'
+
+initial.interface_shape_comp:
+  value: 0.45
+  operator: '>='
+
+initial.plddt:
+  value: 0.8
+  operator: '>='

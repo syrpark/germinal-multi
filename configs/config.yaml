@@ -1,0 +1,70 @@
+# @package _global_
+# Main Hydra configuration: defaults, and which sub-configs to use.
+
+defaults:
+  # _self_ FIRST, so the keys below are defaults a run/target/filter config
+  # can override rather than values that win over it.
+  - _self_
+  - run: multi
+  - target: ba2_kp3
+  - filter/initial: scfv_multi
+  - filter/final: scfv_multi
+  # Folding backend per stage: the group is instantiated twice, under its own
+  # package each time, so the two stages cannot collide.
+  #   defaults: [- override folding@recycle_folder: af3]
+  - folding@recycle_folder: af3
+  - folding@filter_folder: af3
+  - override hydra/hydra_logging: disabled
+  - override hydra/job_logging: disabled
+
+# ColabFold database root, used by colabfold_search/mmseqs2 to build the target
+# MSA. Global rather than per-backend: both af3 and protenix read it, so a
+# protenix-only run needs it too. Required only when a stage sets
+# msa_method: "colabfold_local"; the shipped configs search remotely.
+# Where AF3 itself lives is in configs/folding/af3.yaml, since that is
+# backend-specific. Trailing slash is fine.
+msa_db_dir: ???
+
+# Console output. "INFO" is normal progress; "WARNING" quietens a run to just
+# the problems; "DEBUG" is the same as INFO today. log_timestamps prefixes each
+# line with time, level and module, which is what you want when diagnosing a
+# long run rather than reading it live.
+log_level: "INFO"
+log_timestamps: false
+
+# Pipeline routing: `logits_only` picks the hallucination schedule,
+# `recycling` swaps the single redesign for the AbMPNN+refold loop.
+logits_only: false
+recycling: false
+project_dir: "."
+results_dir: "results"
+# Fallback only: this value alone decides the results directory, so every
+# run you want kept apart must override it.
+experiment_name: "multi_scfv"
+run_config: ""
+max_trajectories: 10000
+max_hallucinated_trajectories: 100000
+max_passing_designs: 10000
+
+# Bounds on ONE batch of hallucination (phase A), not on the run: the batch
+# closes at whichever trips first, enough passers or enough attempts.
+max_hallucination_attempts: 100
+max_hallucination_passing: 5
+
+# Abort after this many designs in a row are lost to a FAILED TOOL (AbMPNN
+# exiting non-zero, and so on) rather than to a filter. A broken install
+# fails every design identically, and without this the run reports a 0%
+# acceptance rate instead of an error. Any design that reaches the final
+# candidates resets the count. 0 disables the check.
+max_consecutive_tool_failures: 10
+
+# paths
+pdb_dir: "pdbs"
+dssp_path: "params/dssp"
+dalphaball_path: "params/DAlphaBall.gcc"
+
+# silence hydra output dir
+hydra:
+  output_subdir: null
+  run:
+    dir: .

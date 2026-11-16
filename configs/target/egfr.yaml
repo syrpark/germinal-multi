@@ -1,0 +1,15 @@
+# @package target
+# EGFR domain III co-optimisation: wild type and mutant, against the
+# A43/A98/A133 epitope.
+#
+# No per-campaign gate overrides: the hallucination gates are the same in every
+# run config (plddt_threshold 0.80, i_ptm_threshold 0.73, i_pae_threshold 0.22).
+#
+# cdr_lengths + fw_lengths must total 242, the generated scFv binder length,
+# or every CDR window shifts. validate_binder_length rejects it at startup.
+
+target_name: ["egfr", "egfr_mut"]
+target_pdb_path: ["pdbs/egfr_diii.pdb", "pdbs/egfr_diii_challenge.pdb"]
+target_chain: "A"
+binder_chain: "B"
+target_hotspots: ["A43,A98,A133", "A43,A98,A133"]

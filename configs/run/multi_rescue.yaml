@@ -1,0 +1,184 @@
+# @package _global_
+# XFG antibody recovery on the full hallucination, no recycling.
+#
+# Same target geometry and recovery setup as run/multi_rescue_logits, but with
+# the germinal path's design schedule and redesign fan-out. Use with
+# target=xfg and filter/initial=scfv_multi_rescue.
+#
+# What differs from run/multi_rescue_logits:
+#   softmax_steps 0 -> 10, search_steps 0 -> 5, search_mutation_rate -> 0.05,
+#     which adds the softmax and PSSM-semigreedy phases that step counts of 0
+#     skip outright.
+#   atom_distance_cutoff 0.0 -> 2.6, since this path has no ratchet to raise
+#     it later and 0.0 would leave every CDR position designable.
+#   max_mpnn_sequences 1 -> 4: with no recycle loop it filters a fan-out.
+#
+# The recycle keys are left in place but unread. early_check_min_cdr_fraction
+# is not one of them: the early check runs on every path.
+
+# Results root for this config: results/<experiment_name>/. Set per run
+# config so differently-named configs do not share one.
+experiment_name: "multi_rescue"
+
+# Phase A (hallucination) batch bounds -- whichever trips first closes the
+# batch and sends it to the batched initial-filter fold.
+max_hallucination_attempts: 100
+max_hallucination_passing: 5
+
+
+type: "scfv"
+protocol: "multi_binder"
+
+# Pipeline routing (see run_germinal_multi.py).
+logits_only: false
+recycling: false
+complex_path: ["pdbs/bd55_xfg.pdb", "pdbs/bd55_xfg_next.pdb"]
+cdr_lengths: [8, 7, 11, 6, 3, 10] # heavy, then light
+fw_lengths: [25,17,38,54,17,36,9]
+pregenerate_seeds: false
+vh_first: true
+vh_len: 115
+vl_len: 107
+is_recover: True
+recover_bias: 5
+
+# How per-target gradients are combined each step: "sum" is generic in N,
+# "pcgrad" takes exactly two and falls back to "sum" above that, with a note.
+# The non-logits path uses pcgrad to match the original xfg_recovery behaviour;
+# logits configs use sum.
+multi_grad_merge_method: "pcgrad"
+clear_best_greedy: False
+
+
+# === Loss weights ===
+weights_plddt: 0.5
+weights_i_plddt: 1.0
+weights_pae_intra: 0.1
+weights_pae_inter: 0.75
+weights_iptm: 1.0
+weights_con_intra: 0.1
+weights_con_inter: 0.2
+weights_rg: 0.1
+weights_helix: 0.001
+weights_beta: 0.001
+
+# === Contact parameters ===
+intra_contact_distance: 14.0
+inter_contact_distance: 14.0
+intra_contact_number: 2
+inter_contact_number: 10
+framework_contact_loss: true
+framework_contact_offset: 0.5
+
+# === Hallucination (logits-only) ===
+logits_steps: 45
+softmax_steps: 10
+search_steps: 5
+search_mutation_rate: 0.05
+plddt_threshold: 0.80
+i_ptm_threshold: 0.73
+i_pae_threshold: 0.22
+seq_entropy_threshold: 0.01
+
+# === IgLM ===
+# The antibody language model steering the design gradient. "iglm" is the
+# only supported value; the AbLang path is not wired up.
+ablm_model: "iglm"
+iglm_grad_merge_method: "pcgrad"
+iglm_scale: [0.0, 0.4, 0.4, 1.0]
+iglm_temp: 0.6
+iglm_species: "[HUMAN]"
+seq_init_mode: []
+bias_redesign: 10
+use_pos_distance: true
+clear_best: true
+
+# === Multi-state AbMPNN redesign ===
+mpnn_fix_interface: true
+num_seqs: 16
+max_mpnn_sequences: 4
+sampling_temp: 0.1
+backbone_noise: 0.0
+atom_distance_cutoff: 2.6
+omit_AAs: "C"
+
+# === Recycling ===
+# Inert here (`recycling: false`), and 0 is fail-closed: the runner raises if
+# recycling is flipped true while this is <= 0.
+num_recycles: 0
+recycle_max_mpnn_score: 1.5
+recycle_ipsae_threshold: 0.4
+early_check_min_cdr_fraction: 0.4
+# Interface ratchet: once a recycle improves average ipSAE, binder residues
+# within fix_interface_cutoff freeze for the rest of the run. One-way, so a
+# larger cutoff freezes more of the interface for longer.
+interface_ratchet: false
+fix_interface_cutoff: 3.0   # only consulted when interface_ratchet is true
+
+# === Structure prediction ===
+# --- Folding backends ---
+# The recycle loop and the filter stages fold independently and may use
+# different models. AF3 folds a whole batch in one container call; Protenix
+# runs one complex per invocation and reports no ipSAE, which the backend
+# derives from its PAE and per-atom pLDDT.
+
+# Protenix-only settings. Ignored unless a stage above selects protenix.
+msa_mode: "target"
+num_fold_seeds_initial: 3   # folding seeds, INITIAL filter (is_final=False);
+                  # live on EVERY path: the initial filter is unconditional
+num_fold_seeds_recycle: 1   # folding seeds per fold in the recycling loop
+num_fold_seeds_final: 5   # folding seeds, final filter (is_final=True)
+
+# === AF3 paths ===
+use_metagenomic_db: false
+
+# === Template removal ===
+rm_template_seq: false # target
+rm_template_sc: true # target
+rm_binder: false
+rm_binder_seq: false
+rm_binder_sc: true
+rm_template_ic: false  # inter-chain contacts preserved (complex_path provides WT binding mode)
+
+# === Model/optimization ===
+learning_rate: 0.1
+optimizer: "sgd"
+normalize_gradient: true
+linear_lr_annealing: true
+min_lr_scale: 0.3
+use_multimer_design: true
+sample_models: true
+num_models: 1
+num_recycles_design: 3
+recycle_mode: "last"
+
+# === Loss toggles ===
+use_helix_loss: true
+use_beta_loss: true
+use_rg_loss: true
+use_termini_distance_loss: false
+use_i_ptm_loss: true
+
+# === File management ===
+save_design_trajectory_plots: false
+
+# === Filter thresholds ===
+clash_threshold: 2.5
+hotspot_distance_threshold: 5.5
+residue_contact_distance: 6.5
+min_cdr_hotspot_contacts: 2
+sap_limit_sasa: 3.0
+sap_patch_radius: 7.5
+sap_avg_sasa_patch_thr: 1.5
+
+# === Other ===
+dgram_cce: 0.01
+n_relax: 5
+
+
+# How to reduce the FastRelax ensemble: "best" takes every metric from the
+# lowest-energy run, "average" means them and so describes no one structure.
+relax_score_mode: "best"
+
+# ProteinMPNN weights used for redesign
+mpnn_model_name: "abmpnn"

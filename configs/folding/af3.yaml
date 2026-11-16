@@ -1,0 +1,67 @@
+# AlphaFold3 folding backend. Selected per stage, e.g.
+#   - override folding@filter_folder: af3
+# Read these through folding.resolve_folder(run_settings, stage), not by name.
+
+backend: "af3"
+
+# --- Where AF3 lives on this machine -- YOU MUST SET THESE ---
+# They ship as Hydra's ??? sentinel, which survives OmegaConf resolve as a
+# literal string; validate_af3_paths checks them at startup, before any GPU
+# time is spent. Both stages load this same file, so setting them here covers
+# recycle_folder and filter_folder at once. Override individually on the
+# command line as recycle_folder.af3_sif_path=... if a stage needs its own.
+#
+# AF3 is gated by Google's terms -- see docs/af3-setup.md.
+
+# Clone of github.com/google-deepmind/alphafold3. Provides run_alphafold.py.
+af3_repo_path: ???
+
+# Singularity image built from that repo's Dockerfile.
+af3_sif_path: ???
+
+# Directory holding the AF3 model weights (the Google-approved download).
+af3_model_dir: ???
+
+# AF3 reference databases (BFD, MGnify, PDB seqres, UniProt, UniRef90, ...).
+af3_db_dir: ???
+
+# Diffusion samples per seed (--num_diffusion_samples). Passed explicitly:
+# unset means AF3 picks, not that the setting is neutral.
+num_samples: 5
+
+# Pairformer recycles (--num_recycles). AF3's own default is 10.
+num_cycles: 10
+
+# AF3 has no --use_msa flag; it uses whatever unpairedMsaPath the input JSON
+# carries. This declares intent for the stage and is validated at startup.
+use_msa: true
+
+# --- Which prediction to carry forward ---
+# Two decisions, pointing opposite ways on purpose: samples within one seed
+# differ only by noise ("best"), while seeds are independent attempts at the
+# complex ("worst"). Net: min over seeds of max over samples, by ranking_score.
+sample_select_mode: "best"
+seed_select_mode: "worst"
+
+# AF3-only: the structure handed to relax comes from the best-ranked
+# prediction while confidence and ipSAE come from the selected one above.
+# This moves relax, interface metrics and SAP onto it too, via external_pdb.
+decoupled: true
+
+# --- Alignments ---
+# msa_method: both options are colabfold. "colabfold_remote" calls
+# api.colabfold.com; "colabfold_local" searches msa_db_dir.
+msa_method: "colabfold_remote"
+
+# msa_scope: who gets one. none (nobody), target_only (antigens only, binder
+# gets a one-sequence stub), or binder_masked (binder too, CDR columns gapped
+# in every homolog). target_only here because af3, unlike protenix, scores
+# well from the stub alone and need not pay for the binder search.
+msa_scope: "target_only"
+
+# --- Batching ---
+# Designs per backend call. The caller scores each batch before folding the
+# next, so this bounds what a kill mid-fold discards. af3 folds a whole batch
+# in ONE container start, so a larger batch is also fewer start-ups.
+# 0 folds the whole set in one call.
+batch_size: 10

@@ -1,0 +1,17 @@
+# @package target
+# SARS-CoV-2 RBD co-optimisation: BA.2 and KP.3 -- extended hotspot.
+#
+# The two hotspot lists differ in their last entry (A170 vs A169): KP.3
+# carries a single-residue deletion relative to BA.2, so positions after it
+# shift by one. Both name the same valine at the epitope.
+#
+# pdbs/kp3.pdb is renumbered contiguously 1-193 so this is unambiguous:
+# ColabDesign resolves a hotspot by author residue number while the filters
+# resolve it positionally, and the two agree only on a gapless chain. Any new
+# target PDB should likewise be renumbered contiguously from 1.
+
+target_name: ["ba2","kp3"]
+target_pdb_path: ["pdbs/ba2.pdb", "pdbs/kp3.pdb"]
+target_chain: "A"
+binder_chain: "B"
+target_hotspots: ["A70,A74,A84,A122,A140,A170", "A70,A74,A84,A122,A140,A169"]
